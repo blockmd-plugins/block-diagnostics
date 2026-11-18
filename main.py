@@ -15,8 +15,7 @@ DEFAULT_CONFIG = {
     "check_broken_links": True,
     "check_empty_notes": True,
     "large_asset_threshold": "5mb",
-    "cleanup_dest": "downloads",
-    "cleanup_custom_dir": "",
+    "cleanup_dir": "",
     "report_format": "html",
 }
 
@@ -27,8 +26,8 @@ THRESHOLD_BYTES = {
 }
 
 REPORT_FORMAT_OPTIONS = [
-    {"value": "html", "label": "单文件 HTML 报告（诊断报告.html）"},
-    {"value": "md", "label": "Markdown 报告（诊断报告.md）"},
+    {"value": "html", "label": "HTML"},
+    {"value": "md", "label": "Markdown"},
 ]
 
 SKIP_DIRS = {"node_modules", "__pycache__"}
@@ -118,18 +117,10 @@ class DiagnosticsPlugin:
             options.append({"value": f"dir:{d}", "label": f"仅目录 · {d}/"})
         return options
 
-    def cleanup_dest_options(self):
-        default_dir = os.path.join(self.downloads_dir, "Block-Orphan-Assets")
-        return [
-            {"value": "downloads", "label": f"移至下载目录 · {default_dir}"},
-            {"value": "custom", "label": "自定义文件夹…"},
-        ]
-
     def resolve_cleanup_dir(self, config):
-        if config.get("cleanup_dest") == "custom":
-            custom = (config.get("cleanup_custom_dir") or "").strip()
-            if custom:
-                return os.path.abspath(os.path.expanduser(custom))
+        chosen = config["cleanup_dir"]
+        if chosen:
+            return os.path.abspath(os.path.expanduser(chosen))
         return os.path.join(self.downloads_dir, "Block-Orphan-Assets")
 
     def resolve_report_path(self, config):
@@ -294,7 +285,6 @@ class DiagnosticsPlugin:
 
     def build_preview_item(self, metrics, findings, config):
         report_path = self.resolve_report_path(config)
-        cleanup_dir = self.resolve_cleanup_dir(config)
         orphan_list = findings["orphan_assets"]
         broken_list = findings["broken_links"]
         empty_list = findings["empty_notes"]
@@ -351,7 +341,7 @@ class DiagnosticsPlugin:
                 "palette": "ocean",
                 "title": "实时诊断预览 · 待处理清单",
                 "badge": badge,
-                "subtitle": f"报告导出：{report_path} ｜ 孤立附件移至：{cleanup_dir}",
+                "subtitle": f"报告：{os.path.basename(report_path)}",
                 "body": "\n".join(lines),
             },
         }
@@ -558,22 +548,13 @@ class DiagnosticsPlugin:
                             ],
                         },
                         {
-                            "kind": "select",
-                            "id": "cleanup_dest",
-                            "label": "孤立附件移出目录",
-                            "value": config["cleanup_dest"],
-                            "options": self.cleanup_dest_options(),
-                        },
-                        {
                             "kind": "folder",
-                            "id": "cleanup_custom_dir",
-                            "label": "自定义移出目录",
-                            "value": config["cleanup_custom_dir"],
-                            "placeholder": "选择或输入孤立附件移出目录",
-                            "visible_when": {"control_id": "cleanup_dest", "equals": "custom"},
+                            "id": "cleanup_dir",
+                            "label": "孤立附件移出目录",
+                            "value": self.resolve_cleanup_dir(config),
                         },
                         {
-                            "kind": "select",
+                            "kind": "segmented",
                             "id": "report_format",
                             "label": "诊断报告格式",
                             "value": config["report_format"],
@@ -700,10 +681,11 @@ def normalize_config(raw, scope_options=None):
     if threshold in THRESHOLD_BYTES:
         cfg["large_asset_threshold"] = threshold
 
-    if raw.get("cleanup_dest") in ("downloads", "custom"):
-        cfg["cleanup_dest"] = raw["cleanup_dest"]
-    if isinstance(raw.get("cleanup_custom_dir"), str):
-        cfg["cleanup_custom_dir"] = raw["cleanup_custom_dir"].strip()
+    cleanup_dir = raw.get("cleanup_dir")
+    if cleanup_dir is None and raw.get("cleanup_dest") == "custom":
+        cleanup_dir = raw.get("cleanup_custom_dir")
+    if isinstance(cleanup_dir, str):
+        cfg["cleanup_dir"] = cleanup_dir
 
     if raw.get("report_format") in ("html", "md"):
         cfg["report_format"] = raw["report_format"]
