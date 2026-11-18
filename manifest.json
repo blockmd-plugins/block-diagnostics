@@ -6,12 +6,12 @@
     "zh": "性能与诊断",
     "en": "Diagnostics"
   },
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "Block Community",
   "repo": "blockmd-plugins/block-diagnostics",
   "summary": {
-    "zh": "统计工作区体积、附件占用与进程内存，巡检孤立附件与失效链接",
-    "en": "Inspect workspace size, process RSS memory, orphan assets, and broken relative links"
+    "zh": "统计工作区体积、笔记与附件占用，巡检孤立附件与失效链接并导出报告",
+    "en": "Inspect workspace size, note and asset usage, orphan assets, broken links, and export reports"
   },
   "entry": {
     "command": [
