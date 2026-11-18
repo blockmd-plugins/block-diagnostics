@@ -88,11 +88,13 @@ class DiagnosticsPlugin:
         self.notebook_root = ""
         self.downloads_dir = os.path.expanduser("~/Downloads")
         self.locale = "zh"
+        self.last_status = ""
 
     def initialize(self, params):
         self.notebook_root = params.get("notebook_root") or ""
         self.downloads_dir = params.get("downloads_dir") or os.path.expanduser("~/Downloads")
         self.locale = params.get("locale") or "zh"
+        self.last_status = ""
         return {"ready": True}
 
     def discover_scope_options(self, notes_meta):
@@ -134,10 +136,10 @@ class DiagnosticsPlugin:
         if isinstance(override_values, dict) and override_values:
             raw_cfg.update(override_values)
         entries = normalize_entries(saved.get("entries") or [])
-        last_status = saved.get("status") if isinstance(saved.get("status"), str) and saved.get("status") else "已就绪"
-        return raw_cfg, entries, last_status
+        return raw_cfg, entries, self.last_status
 
-    def save_state(self, bridge, config, entries, status):
+    def save_state(self, bridge, config, entries, status=""):
+        self.last_status = status or ""
         bridge.call_host(
             "host.storage.set",
             {
@@ -145,7 +147,6 @@ class DiagnosticsPlugin:
                 "value": {
                     "config": config,
                     "entries": entries[:MAX_LOG_ENTRIES],
-                    "status": status,
                 },
             },
         )
@@ -563,7 +564,6 @@ class DiagnosticsPlugin:
                         {
                             "kind": "actions",
                             "buttons": [
-                                {"id": "save_config", "label": "保存配置", "variant": "secondary"},
                                 {"id": "export_report", "label": "导出诊断报告", "variant": "primary"},
                                 {"id": "archive_orphans", "label": "安全移出孤立附件", "variant": "secondary"},
                             ],
@@ -599,6 +599,9 @@ class DiagnosticsPlugin:
         )
         scope_options = self.discover_scope_options(notes_meta)
         config = normalize_config(raw_cfg, scope_options)
+        if isinstance(values, dict) and values:
+            status = ""
+            self.save_state(bridge, config, entries, "")
         metrics, findings = self.analyze_workspace(
             notes_meta, note_contents, note_char_counts, note_byte_counts, assets, config
         )
