@@ -328,8 +328,16 @@ class PerformancePlugin:
         action_id = str(params.get("action_id") or "")
         if action_id == "refresh":
             self.has_scanned = True
-            return {"page": self.build_page(refresh_disk=True)}
-        return {"page": self.build_page(refresh_disk=False)}
+            page = self.build_page(refresh_disk=True)
+            status = self.tr("已刷新实时占用与磁盘分布", "Refreshed live usage and storage breakdown")
+            page["status"] = status
+            return {
+                "ok": True,
+                "tone": "success",
+                "status": status,
+                "page": page,
+            }
+        return {"ok": True, "tone": "info", "page": self.build_page(refresh_disk=False)}
 
 
 def main() -> None:
