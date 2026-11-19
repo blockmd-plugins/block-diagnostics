@@ -3,15 +3,15 @@
   "schema_version": 1,
   "id": "block-diagnostics",
   "name": {
-    "zh": "性能与诊断",
-    "en": "Diagnostics"
+    "zh": "性能与占用",
+    "en": "Performance & Usage"
   },
-  "version": "1.1.0",
+  "version": "1.2.0",
   "author": "Block Community",
   "repo": "blockmd-plugins/block-diagnostics",
   "summary": {
-    "zh": "统计工作区体积、笔记与附件占用，巡检孤立附件与失效链接并导出报告",
-    "en": "Inspect workspace size, note and asset usage, orphan assets, broken links, and export reports"
+    "zh": "实时监控 Block 的 CPU 与物理内存，并以面积图展示 7 类磁盘空间占用",
+    "en": "Monitor live Block CPU and RSS memory with a 7-category storage treemap"
   },
   "entry": {
     "command": [
