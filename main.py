@@ -179,6 +179,7 @@ class PerformancePlugin:
         ]
 
         storage_items: list[dict[str, Any]] = []
+        total_files = 0
         if "treemap" in self.capabilities and raw_cats:
             tiles = []
             for cat in raw_cats:
@@ -187,6 +188,7 @@ class PerformancePlugin:
                 detail = str(cat.get("detail") or "").strip()
                 cbytes = max(0, int(cat.get("bytes") or 0))
                 file_count = max(0, int(cat.get("file_count") or 0))
+                total_files += file_count
                 if not cid or not label:
                     continue
                 entries = []
@@ -216,11 +218,37 @@ class PerformancePlugin:
                     tile_obj["entries"] = entries
                 tiles.append(tile_obj)
             if tiles:
+                sub_text = (
+                    f"{total_files} files"
+                    if self.is_en()
+                    else f"{total_files} 个文件"
+                ) if total_files > 0 else ""
+                summary: dict[str, Any] = {
+                    "total_label": self.tr("磁盘总占用", "Total Storage"),
+                    "total_value": format_bytes_iec(total_bytes),
+                    "metrics": [
+                        {
+                            "label": self.tr("物理内存", "Memory RSS"),
+                            "value": format_bytes_iec(rss_bytes) if live_supported else "—",
+                        },
+                        {
+                            "label": "CPU",
+                            "value": f"{cpu_pct:.1f}%" if live_supported else "—",
+                        },
+                        {
+                            "label": self.tr("统计时间", "Scanned"),
+                            "value": last_scan,
+                        },
+                    ],
+                }
+                if sub_text:
+                    summary["sub_text"] = sub_text
                 storage_items.append(
                     {
                         "kind": "treemap",
                         "id": "disk-breakdown",
                         "total_bytes": total_bytes,
+                        "summary": summary,
                         "tiles": tiles,
                     }
                 )
@@ -254,16 +282,16 @@ class PerformancePlugin:
                 }
             )
 
-        page: dict[str, Any] = {
-            "title": self.tr("性能与占用", "Performance & Usage"),
-            "header_actions": [
+        if "treemap" in self.capabilities and storage_items:
+            cards = [
                 {
-                    "id": "refresh",
-                    "label": self.tr("刷新", "Refresh"),
-                    "variant": "secondary",
+                    "id": "storage",
+                    "title": "",
+                    "items": storage_items,
                 }
-            ],
-            "cards": [
+            ]
+        else:
+            cards = [
                 {
                     "id": "overview",
                     "title": self.tr("实时占用", "Live Usage"),
@@ -274,7 +302,18 @@ class PerformancePlugin:
                     "title": self.tr("磁盘空间分布", "Storage Breakdown"),
                     "items": storage_items,
                 },
+            ]
+
+        page: dict[str, Any] = {
+            "title": self.tr("性能与占用", "Performance & Usage"),
+            "header_actions": [
+                {
+                    "id": "refresh",
+                    "label": self.tr("刷新", "Refresh"),
+                    "variant": "secondary",
+                }
             ],
+            "cards": cards,
         }
         if live_supported:
             page["refresh_interval_ms"] = 1000
