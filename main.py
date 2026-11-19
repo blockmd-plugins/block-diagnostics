@@ -186,17 +186,35 @@ class PerformancePlugin:
                 label = str(cat.get("label") or cid).strip()
                 detail = str(cat.get("detail") or "").strip()
                 cbytes = max(0, int(cat.get("bytes") or 0))
+                file_count = max(0, int(cat.get("file_count") or 0))
                 if not cid or not label:
                     continue
-                tiles.append(
-                    {
-                        "id": cid,
-                        "label": label,
-                        "detail": detail,
-                        "bytes": cbytes,
-                        "color": cid,
-                    }
-                )
+                entries = []
+                for ent in cat.get("entries") or []:
+                    ename = str(ent.get("name") or "").strip()
+                    epath = str(ent.get("path") or "").strip()
+                    ebytes = max(0, int(ent.get("bytes") or 0))
+                    ecount = max(0, int(ent.get("count") or 0))
+                    if not ename:
+                        continue
+                    item_ent: dict[str, Any] = {"name": ename, "bytes": ebytes}
+                    if epath:
+                        item_ent["path"] = epath
+                    if ecount > 1:
+                        item_ent["count"] = ecount
+                    entries.append(item_ent)
+                tile_obj: dict[str, Any] = {
+                    "id": cid,
+                    "label": label,
+                    "detail": detail,
+                    "bytes": cbytes,
+                    "color": cid,
+                }
+                if file_count > 0:
+                    tile_obj["file_count"] = file_count
+                if entries:
+                    tile_obj["entries"] = entries
+                tiles.append(tile_obj)
             if tiles:
                 storage_items.append(
                     {
